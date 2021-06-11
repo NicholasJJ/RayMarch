@@ -38,6 +38,7 @@ struct Mirror {
 
 RWStructuredBuffer<Object> objs;
 RWStructuredBuffer<Collider> bounds;
+RWStructuredBuffer<Object> vampireObjs; //Because they don't have a reflection! ba dum tsss
 float3 _lightDir;
 RWStructuredBuffer<Mirror> mirrors;
 bool _useMirrors;
@@ -152,14 +153,7 @@ float combine(float d, float nd, int t) {
 }
 
 float GetDist(float3 p) {
-    //p = float3(p.x % 2, p.y % 2, p.z % 2);
-    //float d = SphereDist(p,float3(0,0,0),.5); //sphere at center
-    float3 mp;
-    //mp.x = pMod(p.x, 5);
-    //mp.y = pMod(p.y, 5);
-    //mp.z = pMod(p.z, 5);
-    mp.yxz = p.yxz;
-    //float d = SphereDist(p, float3(0, 0, 0), .5);
+    float3 rawP = p;
     p = inFoldedSpace(p);
     float d = p.y;
     uint numStructs;
@@ -168,10 +162,15 @@ float GetDist(float3 p) {
     for (uint i = 0; i < numStructs; i++) {
         Object o = objs[i];
         float nd = GetDistToObject(p, o);
-        //d = opSmoothUnion(d, nd, 1);
         d = combine(d, nd, o.combType);
     }
-    //d = min(d, p.y);
+    
+    vampireObjs.GetDimensions(numStructs, stride);
+    for (uint i = 0; i < numStructs; i++) {
+        Object o = vampireObjs[i];
+        float nd = GetDistToObject(rawP, o);
+        d = combine(d, nd, o.combType);
+    }
     
     return d;
 }
@@ -241,24 +240,35 @@ float4 GetDiscreteColor(float3 p) {
 
 float4 GetSmartColor(float3 p) {
     float4 c = float4(0,0,0, 1);
+    float3 rawP = p;
     p = inFoldedSpace(p);
     float d = p.y;
     float div = 0;
-    float dif = GetLight(p);
+    float dif = GetLight(rawP);
     uint numStructs;
     uint stride;
     objs.GetDimensions(numStructs, stride);
     for (uint i = 0; i < numStructs; i++) {
         Object o = objs[i];
         float nd = GetDistToObject(p, o);
-
-
         if (nd < 1) {
             float closeness = clamp(1 - 2*nd, 0, 1);
             c += objs[i].color * closeness;
             div += closeness;
         }
     }
+
+    vampireObjs.GetDimensions(numStructs, stride);
+    for (uint i = 0; i < numStructs; i++) {
+        Object o = vampireObjs[i];
+        float nd = GetDistToObject(rawP, o);
+        if (nd < 1) {
+            float closeness = clamp(1 - 2 * nd, 0, 1);
+            c += vampireObjs[i].color * closeness;
+            div += closeness;
+        }
+    }
+
     if (div == 0) return float4(1, 1, 1, 1) * dif;
     c /= div;
     c *= dif;

@@ -8,6 +8,7 @@ public class cameraManager : MonoBehaviour
     private RenderTexture _target;
     private Camera _camera;
     public raymarchObject[] objs;
+    public raymarchObject[] vampireObjs; //no reflection
     public bool useMirrors;
     public int mirrorDepth;
     public GameObject[] mirrorObjects;
@@ -31,6 +32,7 @@ public class cameraManager : MonoBehaviour
     }
 
     private obj[] objects;
+    private obj[] vObjects;
 
     public struct pointCollider
     {
@@ -76,6 +78,19 @@ public class cameraManager : MonoBehaviour
             objects[i] = o;
         }
 
+        vObjects = new obj[vampireObjs.Length];
+        for (int i = 0; i < vampireObjs.Length; i++)
+        {
+            obj o = new obj();
+            raymarchObject obji = vampireObjs[i];
+            o.position = obji.transform.position;
+            o.type = obji.objType;
+            o.color = obji.color;
+            o.dimensions = obji.transform.localScale * 0.5f;
+            o.combType = obji.combType;
+            vObjects[i] = o;
+        }
+
         boundaryPoints = new pointCollider[colResolution];
         for (int i = 0; i < colResolution; i++)
         {
@@ -99,6 +114,11 @@ public class cameraManager : MonoBehaviour
         objectBuffer.SetData(objects);
         RaymarchShader.SetBuffer(0, "objs", objectBuffer);
         RaymarchShader.SetBuffer(1, "objs", objectBuffer);
+
+        ComputeBuffer vObjectBuffer = new ComputeBuffer(vObjects.Length, totalSize);
+        vObjectBuffer.SetData(vObjects);
+        RaymarchShader.SetBuffer(0, "vampireObjs", vObjectBuffer);
+        RaymarchShader.SetBuffer(1, "vampireObjs", vObjectBuffer);
 
         ComputeBuffer boundaryBuffer = new ComputeBuffer(colResolution, totalBoundarySize);
         boundaryBuffer.SetData(boundaryPoints);
@@ -135,6 +155,7 @@ public class cameraManager : MonoBehaviour
         }
 
         objectBuffer.Dispose();
+        vObjectBuffer.Dispose();
         boundaryBuffer.Dispose();
         mirrorBuffer.Dispose();
     }
