@@ -29,6 +29,11 @@ public class cameraManager : MonoBehaviour
         public Vector4 color;
         public Vector4 dimensions;
         public int combType;
+
+        public Vector4 r0;
+        public Vector4 r1;
+        public Vector4 r2;
+        public Vector4 r3;
     }
 
     private obj[] objects;
@@ -75,6 +80,13 @@ public class cameraManager : MonoBehaviour
             o.color = obji.color;
             o.dimensions = obji.transform.localScale * 0.5f;
             o.combType = obji.combType;
+            Matrix4x4 m = Matrix4x4.TRS(Vector3.zero, Quaternion.Inverse(obji.transform.rotation), Vector3.one);
+
+            o.r0 = m.GetRow(0);
+            o.r1 = m.GetRow(1);
+            o.r2 = m.GetRow(2);
+            o.r3 = m.GetRow(3);
+
             objects[i] = o;
         }
 
@@ -186,7 +198,7 @@ public class cameraManager : MonoBehaviour
         int boolSize = sizeof(int);
         int DimSize = sizeof(float) * 4;
 
-        totalSize = posSize + typeSize + ColorSize + DimSize + typeSize;
+        totalSize = posSize + typeSize + ColorSize + DimSize + typeSize + (4*ColorSize);
 
         totalBoundarySize = posSize + boolSize + posSize;
 
