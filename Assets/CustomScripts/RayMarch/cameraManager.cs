@@ -10,6 +10,7 @@ public class cameraManager : MonoBehaviour
     public raymarchObject[] objs;
     public raymarchObject[] vampireObjs; //no reflection
     public bool useMirrors;
+    public bool portalMode;
     public int mirrorDepth;
     public GameObject[] mirrorObjects;
     public GameObject rlight;
@@ -52,6 +53,8 @@ public class cameraManager : MonoBehaviour
     {
         public Vector3 position;
         public Vector3 normal;
+        public Vector3 up;
+        public Vector3 right;
     }
 
     private mirror[] mirrors;
@@ -119,6 +122,8 @@ public class cameraManager : MonoBehaviour
             mirror m = new mirror();
             m.position = mirrorObjects[i].transform.position;
             m.normal = mirrorObjects[i].transform.up;
+            m.up = mirrorObjects[i].transform.right;
+            m.right = mirrorObjects[i].transform.forward;
             mirrors[i] = m;
         }
          
@@ -144,10 +149,13 @@ public class cameraManager : MonoBehaviour
         RaymarchShader.SetVector("_lightDir", -rlight.transform.forward);
         RaymarchShader.SetBool("_useMirrors", useMirrors);
         RaymarchShader.SetInt("_mirrorDepth", mirrorDepth);
+        RaymarchShader.SetBool("mirrorsArePortals", portalMode);
 
         RaymarchShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
 
         Graphics.Blit(_target, destination);
+
+        //Debug.Log()
 
         RaymarchShader.Dispatch(1, colResolution/10, 1, 1);
 
@@ -202,7 +210,7 @@ public class cameraManager : MonoBehaviour
 
         totalBoundarySize = posSize + boolSize + posSize;
 
-        totalMirrorSize = posSize + posSize;
+        totalMirrorSize = 4*posSize;
 
         pointsOnSphere = PointsOnSphere(colResolution);
         boundaryObjects = new bool[colResolution];

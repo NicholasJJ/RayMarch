@@ -39,6 +39,8 @@ struct Collider {
 struct Mirror {
     float3 pos;
     float3 norm;
+    float3 up;
+    float3 right;
 };
 
 RWStructuredBuffer<Object> objs;
@@ -48,6 +50,7 @@ float3 _lightDir;
 RWStructuredBuffer<Mirror> mirrors;
 bool _useMirrors;
 int _mirrorDepth;
+bool mirrorsArePortals;
 
 Ray CreateRay(float3 origin, float3 direction) {
     Ray ray;
@@ -78,6 +81,49 @@ float pMod(float p, float size)
 //    return p - (2 * min(0, dot(p, n) - d) * n);
 //}
 
+float3x3 portalToWorld(Mirror m) {
+    float3x3 ret = { m.right.x, m.up.x, m.norm.x,
+                    m.right.y, m.up.y, m.norm.y,
+                    m.right.z, m.up.z, m.norm.z };
+    return ret;
+}
+
+float3 portalFold(float3 p, float3 portalInPos, float3 portalOutPos, float3x3 worldToPortalIn, float3x3 portalOutToWorld) {
+    float3 np = p - portalInPos;
+    np = mul(np, worldToPortalIn);
+    if (np.z > 0) return p;
+    np = mul(np, portalOutToWorld);
+    np.x = -np.x;
+    np.z = -np.z;
+    np += portalOutPos;
+    return np;
+}
+
+float3 inPortalSpace(float3 p) {
+    uint numMirrors;
+    uint stride;
+    mirrors.GetDimensions(numMirrors, stride);
+    int i = 0;
+    int depth = 1;
+    float3x3 p2w0 = portalToWorld(mirrors[0]);
+    float3x3 p2w1 = portalToWorld(mirrors[1]);
+    float3x3 w2p0 = transpose(p2w0);
+    float3x3 w2p1 = transpose(p2w1);
+    while (i < _mirrorDepth) {
+        float3 np = p;
+        //portal folds go here
+        np = portalFold(np, mirrors[0].pos, mirrors[1].pos, p2w0, w2p1);
+        np = portalFold(np, mirrors[1].pos, mirrors[0].pos, p2w1, w2p0);
+        float3 d = p - np;
+        if (d.x == 0 && d.y == 0 && d.z == 0) break;
+        p = np;
+        i++;
+        depth++;
+    }
+
+    return p;
+}
+
 float3 planeFold(float3 p, float3 n, float3 mpos) {
     p = p - mpos;
     p -= (2 * min(0, dot(p, n)) * n);
@@ -86,6 +132,7 @@ float3 planeFold(float3 p, float3 n, float3 mpos) {
 
 float3 inFoldedSpace(float3 p) {
     if (!_useMirrors) return p;
+    if (mirrorsArePortals) return inPortalSpace(p);
     uint numMirrors;
     uint stride;
     mirrors.GetDimensions(numMirrors, stride);
@@ -166,7 +213,7 @@ float combine(float d, float nd, int t) {
 float GetDist(float3 p) {
     float3 rawP = p;
     p = inFoldedSpace(p);
-    float d = p.y;
+    float d = 1e+10;
     uint numStructs;
     uint stride;
     objs.GetDimensions(numStructs, stride);
