@@ -11,10 +11,11 @@ public class Grab : MonoBehaviour
     public float pullForce;
     bool grabbedHadGravity;
     [SerializeField] private GameObject grabbed;
+    [SerializeField] float maxV;
     // Start is called before the first frame update
     void Start()
     {
-        
+        maxV = float.NegativeInfinity;
     }
 
     // Update is called once per frame
@@ -48,9 +49,14 @@ public class Grab : MonoBehaviour
         //move object to grab point
         if (grabbed)
         {
-            Vector3 v = camManager.inFoldedWorldSpace(transform.position + (transform.forward * holdDist)) - camManager.inFoldedWorldSpace(grabbed.transform.position);
-            v *= pullForce;
-            grabbed.GetComponent<Rigidbody>().velocity = v;
+            //smooth grab, doesn't work with noncontinuous space e.g. portals :(
+            //Vector3 v = camManager.inFoldedWorldSpace(transform.position + (transform.forward * holdDist)) - camManager.inFoldedWorldSpace(grabbed.transform.position);
+            //maxV = Mathf.Max(maxV, v.magnitude);
+            //v *= pullForce;
+            //grabbed.GetComponent<Rigidbody>().velocity = v;
+
+            //direct grab
+            grabbed.transform.position = camManager.inFoldedWorldSpace(transform.position + (transform.forward * holdDist));
         }
     }
 
