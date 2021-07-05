@@ -50,13 +50,13 @@ public class Grab : MonoBehaviour
         if (grabbed)
         {
             //smooth grab, doesn't work with noncontinuous space e.g. portals :(
-            //Vector3 v = camManager.inFoldedWorldSpace(transform.position + (transform.forward * holdDist)) - camManager.inFoldedWorldSpace(grabbed.transform.position);
-            //maxV = Mathf.Max(maxV, v.magnitude);
-            //v *= pullForce;
-            //grabbed.GetComponent<Rigidbody>().velocity = v;
+            Vector3 v = camManager.inFoldedWorldSpace(transform.position + (transform.forward * holdDist)) - camManager.inFoldedWorldSpace(grabbed.transform.position);
+            maxV = Mathf.Max(maxV, v.magnitude);
+            v *= pullForce;
+            grabbed.GetComponent<Rigidbody>().velocity = v;
 
             //direct grab
-            grabbed.transform.position = camManager.inFoldedWorldSpace(transform.position + (transform.forward * holdDist));
+            //grabbed.transform.position = camManager.inFoldedWorldSpace(transform.position + (transform.forward * holdDist));
         }
     }
 
